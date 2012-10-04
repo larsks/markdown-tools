@@ -12,7 +12,7 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--css', action='store_true')
     p.add_argument('--start', '-s', default='/html/body')
-    p.add_argument('--toc', '-t', default='.//div[@id="toc"]')
+    p.add_argument('--toc', '-t', default='.//p[text()="[[TOC]]"]')
     p.add_argument('--list-tag', '-l', default='ol')
     p.add_argument('--skip-first-header', '-S', action='store_true')
     p.add_argument('input', nargs='?')
@@ -89,7 +89,7 @@ def main():
 
         id += 1
 
-    target.append(toc)
+    target.getparent().replace(target, E.DIV(toc, id='toc'))
 
     if opts.output:
         outfd = open(opts.output, 'w')
