@@ -10,23 +10,36 @@ from lxml import etree
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument('--css', action='store_true')
-    p.add_argument('--start', '-s', default='/html/body')
-    p.add_argument('--toc', '-t', default='.//p[text()="[[TOC]]"]')
-    p.add_argument('--list-tag', '-l', default='ol')
-    p.add_argument('--skip-first-header', '-S', action='store_true')
+    p.add_argument('--start', '-s', default='css:body',
+            help='Selector identifying element from which to start looking for headers.')
+    p.add_argument('--toc', '-t', default='.//p[text()="[[TOC]]"]',
+            help='Selector identifying element that will be replaced with TOC.')
+    p.add_argument('--list-tag', '-l', default='ol',
+            help='Element type for lists (generally "ul" or "ol").')
+    p.add_argument('--skip-first-header', '-S', action='store_true',
+            help='Ignore the first header in the document.')
+    p.add_argument('--debug', action='store_true')
     p.add_argument('input', nargs='?')
     p.add_argument('output', nargs='?')
     return p.parse_args()
 
 def selector (s):
-    if not s.startswith('css:'):
+    if s.startswith('css:'):
+        return css(s[4:]).path
+    elif s.startswith('xpath:'):
+        return s[6:]
+    else:
         return s
-
-    return css(s[4:]).path
 
 def main():
     opts = parse_args()
+
+    opts.toc = selector(opts.toc)
+    opts.start = selector(opts.start)
+
+    if opts.debug:
+        print >>sys.stderr, 'toc xpath:', opts.toc
+        print >>sys.stderr, 'start xpath:', opts.start
 
     if opts.input:
         infd = open(opts.input)
@@ -36,9 +49,6 @@ def main():
     doc = etree.HTML(infd.read())
 
     if opts.start:
-        if opts.css:
-            opts.start = css(opts.start).path
-
         matches = doc.xpath(opts.start)
 
         if not matches:
@@ -46,12 +56,8 @@ def main():
             sys.exit(1)
 
         start = matches[0]
-
     else:
         start = doc
-
-    if opts.css:
-        opts.toc = css(opts.css).path
 
     matches = start.xpath(opts.toc)
     if not matches:
@@ -62,32 +68,38 @@ def main():
     sel = css('h1,h2,h3,h4')
     id = 1
     toc = etree.Element(opts.list_tag)
+    cur = toc
     lasthdrlevel = 1
     first = True
     for hdr in start.xpath(sel.path):
-
         if opts.skip_first_header and first:
             first=False
             continue
 
+        if opts.debug:
+            print >>sys.stderr, 'element:', hdr.tag, hdr.text
+
         hdrlevel = int(hdr.tag[1:])
         if hdrlevel > lasthdrlevel:
             new = etree.Element(opts.list_tag)
-            toc.append(new)
-            toc = new
+            cur.append(new)
+            cur = new
         elif hdrlevel < lasthdrlevel:
-            toc = toc.getparent()
+            cur = toc.getparent()
         lasthdrlevel = hdrlevel
 
         hdrid = 'id%d' % id
+        id += 1
 
         hdr.append(E.A(hdr.text, name=hdrid))
-        toc.append(E.LI(
+        cur.append(E.LI(
             E.A(hdr.text, href='#%s' % hdrid)))
 
-        hdr.text = ''
+        if opts.debug:
+            print >>sys.stderr, 'TOC:'
+            print >>sys.stderr, etree.tostring(toc)
 
-        id += 1
+        hdr.text = ''
 
     target.getparent().replace(target, E.DIV(toc, id='toc'))
 
