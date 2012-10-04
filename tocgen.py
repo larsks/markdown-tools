@@ -15,7 +15,8 @@ def parse_args():
     p.add_argument('--toc', '-t', default='.//div[@id="toc"]')
     p.add_argument('--list-tag', '-l', default='ol')
     p.add_argument('--skip-first-header', '-S', action='store_true')
-    p.add_argument('input')
+    p.add_argument('input', nargs='?')
+    p.add_argument('output', nargs='?')
     return p.parse_args()
 
 def selector (s):
@@ -27,7 +28,12 @@ def selector (s):
 def main():
     opts = parse_args()
 
-    doc = etree.HTML(open(opts.input).read())
+    if opts.input:
+        infd = open(opts.input)
+    else:
+        infd = sys.stdin
+
+    doc = etree.HTML(infd.read())
 
     if opts.start:
         if opts.css:
@@ -85,7 +91,12 @@ def main():
 
     target.append(toc)
 
-    print etree.tostring(doc, pretty_print=True, method='html')
+    if opts.output:
+        outfd = open(opts.output, 'w')
+    else:
+        outfd = sys.stdout
+
+    print >>outfd, etree.tostring(doc, pretty_print=True, method='html')
 
 if __name__ == '__main__':
     main()
