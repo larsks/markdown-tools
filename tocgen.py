@@ -85,7 +85,7 @@ def main():
             cur.append(new)
             cur = new
         elif hdrlevel < lasthdrlevel:
-            cur = toc.getparent()
+            cur = cur.getparent()
         lasthdrlevel = hdrlevel
 
         hdrid = 'id%d' % id
@@ -98,6 +98,8 @@ def main():
         if opts.debug:
             print >>sys.stderr, 'TOC:'
             print >>sys.stderr, etree.tostring(toc)
+            print >>sys.stderr, 'CUR:'
+            print >>sys.stderr, etree.tostring(cur)
 
         hdr.text = ''
 
