@@ -65,13 +65,13 @@ def main():
         sys.exit(1)
     target = matches[0]
 
-    sel = css('h1,h2,h3,h4')
+    hdrxpath = selector('css:h1,h2,h3,h4,h5,h6')
     id = 1
     toc = etree.Element(opts.list_tag)
     cur = toc
     lasthdrlevel = 1
     first = True
-    for hdr in start.xpath(sel.path):
+    for hdr in start.xpath(hdrxpath):
         if opts.skip_first_header and first:
             first=False
             continue
